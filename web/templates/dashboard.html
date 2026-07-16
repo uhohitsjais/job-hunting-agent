@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Job Hunting Agent</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+    nav { margin-bottom: 1.5rem; }
+    nav a { margin-right: 1rem; }
+    h2 { margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid #ddd; }
+    th { background: #f4f4f4; }
+    .empty { color: #666; padding: 1rem 0; }
+    .section-priority h2 { color: #1e7e34; }
+    .section-apply h2 { color: #1a56c4; }
+    .section-stretch h2 { color: #a15c00; }
+    .section-archive h2 { color: #666; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">Dashboard</a> <a href="/profile">Candidate Profile</a> <a href="/profile/import">Import from LinkedIn</a></nav>
+  <h1>Job Hunting Agent</h1>
+  {% if not has_jobs %}
+  <p class="empty">No jobs sourced yet. Run <code>python app.py fetch</code>.</p>
+  {% else %}
+    {% for label, jobs in sections %}
+    <section class="section-{{ label | lower | replace(' ', '-') }}">
+      <h2>{{ label }} ({{ jobs | length }})</h2>
+      <table>
+        <thead>
+          <tr><th>Score</th><th>Company</th><th>Title</th><th>Source</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td>{{ job.score if job.score is not none else '—' }}</td>
+            <td>{{ job.company }}</td>
+            <td><a href="/jobs/{{ job.id }}">{{ job.title }}</a></td>
+            <td>{{ job.source }}</td>
+            <td>{{ job.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endfor %}
+  {% endif %}
+</body>
+</html>

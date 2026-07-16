@@ -1,0 +1,17 @@
+# Companies to fetch job postings from. Each must be confirmed reachable on
+# its ATS's public job board API before being added here (see README).
+# `industry` should match the "Bucket" column in the target company sheet —
+# used by the excluded_industries rule in scoring/rules.py.
+companies:
+  - name: Gusto
+    slug: gusto
+    ats: greenhouse
+    industry: HR Tech/Benefits
+  - name: Rover
+    slug: rover
+    ats: lever
+    industry: Marketplaces
+  - name: Patreon
+    slug: patreon
+    ats: ashby
+    industry: Great Consumer

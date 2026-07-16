@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ job.title }} at {{ job.company }} — Job Hunting Agent</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; max-width: 800px; }
+    nav { margin-bottom: 1.5rem; }
+    nav a { margin-right: 1rem; }
+    .decision { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.9rem; font-weight: 600; margin-left: 0.5rem; }
+    .decision-priority { background: #e6f4ea; color: #1e7e34; }
+    .decision-apply { background: #e8f0fe; color: #1a56c4; }
+    .decision-stretch { background: #fff4e5; color: #a15c00; }
+    .decision-archive { background: #f1f1f1; color: #666; }
+    h2 { margin-top: 2rem; }
+    ul { padding-left: 1.2rem; }
+    .meta { color: #555; }
+    .description { white-space: pre-wrap; background: #fafafa; padding: 1rem; border-radius: 4px; max-height: 20rem; overflow-y: auto; }
+    textarea { width: 100%; min-height: 8rem; padding: 0.5rem; font-family: inherit; font-size: 1rem; box-sizing: border-box; }
+    button { margin-top: 0.75rem; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+    .error { background: #fdecea; color: #a1260d; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">Dashboard</a> <a href="/profile">Candidate Profile</a></nav>
+  {% if request.args.get('error') == 'materials_failed' %}
+  <p class="error">Material generation failed — check model_runs.error_message (likely a missing/invalid OPENAI_API_KEY or OPENAI_MODEL).</p>
+  {% endif %}
+  <h1>{{ job.title }}
+    {% if job.decision %}<span class="decision decision-{{ job.decision }}">{{ job.decision }} — {{ job.score }}</span>{% endif %}
+  </h1>
+  <p class="meta">{{ job.company }} · {{ job.location or 'location unspecified' }} · {{ job.remote_type }} · <a href="{{ job.url }}" target="_blank">view posting ↗</a></p>
+
+  {% if job.decision %}
+  <h2>Why this recommendation</h2>
+  <p><strong>Positioning strategy:</strong> {{ job.positioning_strategy }}</p>
+  {% if job.reasons_to_apply %}
+  <p><strong>Strongest reasons to apply:</strong></p>
+  <ul>{% for r in job.reasons_to_apply %}<li>{{ r }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if job.gaps %}
+  <p><strong>Gaps:</strong></p>
+  <ul>{% for g in job.gaps %}<li>{{ g }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if job.disqualifiers %}
+  <p><strong>Disqualifiers:</strong></p>
+  <ul>{% for d in job.disqualifiers %}<li>{{ d }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% else %}
+  <p class="meta">Not yet scored. Run <code>python app.py score</code>.</p>
+  {% endif %}
+
+  <h2>Job description</h2>
+  <div class="description">{{ job.description }}</div>
+
+  <h2>Application materials</h2>
+  {% if not application %}
+  <form method="post" action="/jobs/{{ job.id }}/materials">
+    <button type="submit">Generate tailored resume summary + cover letter</button>
+  </form>
+  {% else %}
+  <form method="post" action="/jobs/{{ job.id }}/materials/save">
+    <label>Resume summary
+      <textarea name="resume_summary">{{ application.resume_summary or '' }}</textarea>
+    </label>
+    <label>Cover letter
+      <textarea name="cover_letter_body">{{ application.cover_letter_body or '' }}</textarea>
+    </label>
+    <button type="submit">Save edits</button>
+  </form>
+  <form method="post" action="/jobs/{{ job.id }}/materials" style="margin-top: 0.5rem;">
+    <button type="submit">Regenerate</button>
+  </form>
+  {% endif %}
+</body>
+</html>

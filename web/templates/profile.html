@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Candidate Profile — Job Hunting Agent</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; max-width: 700px; }
+    nav { margin-bottom: 1.5rem; }
+    nav a { margin-right: 1rem; }
+    label { display: block; font-weight: 600; margin-top: 1rem; }
+    .hint { font-weight: normal; color: #666; font-size: 0.85rem; }
+    input[type=text], input[type=number], textarea, select {
+      width: 100%; padding: 0.4rem; margin-top: 0.25rem; box-sizing: border-box;
+      font-family: inherit; font-size: 1rem;
+    }
+    textarea { min-height: 3rem; }
+    button { margin-top: 1.5rem; padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; }
+    .saved { background: #e6f4ea; color: #1e7e34; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; }
+    .imported { background: #fff4e5; color: #a15c00; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; }
+    fieldset { border: 1px solid #ddd; border-radius: 4px; margin-top: 1.5rem; padding: 0 1rem 1rem; }
+    legend { font-weight: 600; padding: 0 0.4rem; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">Dashboard</a> <a href="/profile">Candidate Profile</a> <a href="/profile/import">Import from LinkedIn</a></nav>
+  <h1>Candidate Profile</h1>
+  <p>Structured search criteria — this is what the deterministic rules and the AI both read. List fields take comma-separated values.</p>
+  {% if saved %}<p class="saved">Saved.</p>{% endif %}
+  {% if imported %}<p class="imported">Extracted from your LinkedIn/resume text below — review and edit before saving. Fields the import couldn't infer (industries, salary, remote preference, etc.) are left as they were.</p>{% endif %}
+  <form method="post" action="/profile">
+    <fieldset>
+      <legend>Contact info <span class="hint">used when filling out applications</span></legend>
+      <label>First name
+        <input type="text" name="first_name" value="{{ profile.first_name or '' }}">
+      </label>
+      <label>Last name
+        <input type="text" name="last_name" value="{{ profile.last_name or '' }}">
+      </label>
+      <label>Email
+        <input type="text" name="email" value="{{ profile.email or '' }}">
+      </label>
+      <label>Phone
+        <input type="text" name="phone" value="{{ profile.phone or '' }}">
+      </label>
+      <label>LinkedIn URL
+        <input type="text" name="linkedin_url" value="{{ profile.linkedin_url or '' }}">
+      </label>
+    </fieldset>
+    <label>Target titles <span class="hint">comma-separated</span>
+      <textarea name="target_titles">{{ profile.target_titles | join(', ') }}</textarea>
+    </label>
+    <label>Preferred industries <span class="hint">comma-separated, context for the AI only</span>
+      <textarea name="preferred_industries">{{ profile.preferred_industries | join(', ') }}</textarea>
+    </label>
+    <label>Excluded industries <span class="hint">comma-separated, hard rule — disqualifies a job</span>
+      <textarea name="excluded_industries">{{ profile.excluded_industries | join(', ') }}</textarea>
+    </label>
+    <label>Preferred locations <span class="hint">comma-separated</span>
+      <textarea name="preferred_locations">{{ profile.preferred_locations | join(', ') }}</textarea>
+    </label>
+    <label>Remote preference
+      <select name="remote_preference">
+        <option value="" {% if not profile.remote_preference %}selected{% endif %}>Not specified</option>
+        <option value="remote_only" {% if profile.remote_preference == 'remote_only' %}selected{% endif %}>Remote only</option>
+        <option value="hybrid_ok" {% if profile.remote_preference == 'hybrid_ok' %}selected{% endif %}>Hybrid OK</option>
+        <option value="onsite_ok" {% if profile.remote_preference == 'onsite_ok' %}selected{% endif %}>Onsite OK</option>
+        <option value="no_preference" {% if profile.remote_preference == 'no_preference' %}selected{% endif %}>No preference</option>
+      </select>
+    </label>
+    <label>Minimum salary <span class="hint">hard rule — disqualifies a job</span>
+      <input type="number" name="min_salary" value="{{ profile.min_salary or '' }}">
+    </label>
+    <label>Preferred salary <span class="hint">context for the AI only</span>
+      <input type="number" name="preferred_salary" value="{{ profile.preferred_salary or '' }}">
+    </label>
+    <label>Strongest skills <span class="hint">comma-separated</span>
+      <textarea name="strongest_skills">{{ profile.strongest_skills | join(', ') }}</textarea>
+    </label>
+    <label>Known gaps <span class="hint">comma-separated — helps the AI position you honestly</span>
+      <textarea name="known_gaps">{{ profile.known_gaps | join(', ') }}</textarea>
+    </label>
+    <label>Preferred company size <span class="hint">comma-separated, e.g. startup, growth, enterprise</span>
+      <textarea name="preferred_company_size">{{ profile.preferred_company_size | join(', ') }}</textarea>
+    </label>
+    <label>Years of experience
+      <input type="number" name="years_experience" value="{{ profile.years_experience or '' }}">
+    </label>
+    <label>Willingness to pursue stretch roles
+      <select name="stretch_willingness">
+        <option value="" {% if not profile.stretch_willingness %}selected{% endif %}>Not specified</option>
+        <option value="low" {% if profile.stretch_willingness == 'low' %}selected{% endif %}>Low</option>
+        <option value="medium" {% if profile.stretch_willingness == 'medium' %}selected{% endif %}>Medium</option>
+        <option value="high" {% if profile.stretch_willingness == 'high' %}selected{% endif %}>High</option>
+      </select>
+    </label>
+    <button type="submit">Save</button>
+  </form>
+</body>
+</html>

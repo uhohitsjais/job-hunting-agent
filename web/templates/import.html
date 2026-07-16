@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Import from LinkedIn — Job Hunting Agent</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; max-width: 700px; }
+    nav { margin-bottom: 1.5rem; }
+    nav a { margin-right: 1rem; }
+    label { display: block; font-weight: 600; margin-top: 1rem; }
+    .hint { font-weight: normal; color: #666; font-size: 0.85rem; }
+    textarea { width: 100%; padding: 0.4rem; margin-top: 0.25rem; box-sizing: border-box; font-family: inherit; font-size: 1rem; min-height: 12rem; }
+    button { margin-top: 1.5rem; padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; }
+    .error { background: #fdecea; color: #a1260d; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">Dashboard</a> <a href="/profile">Candidate Profile</a> <a href="/profile/import">Import from LinkedIn</a></nav>
+  <h1>Import from LinkedIn</h1>
+  <p>Paste your full LinkedIn profile text (and resume text, optional) below. The AI extracts what it can — target titles, strongest skills, years of experience, etc. — and you'll review every field before anything is saved. Things LinkedIn/resume text can't tell us (salary, excluded industries, remote preference) stay blank for you to fill in yourself.</p>
+  {% if error %}<p class="error">Extraction failed: {{ error }}</p>{% endif %}
+  <form method="post" action="/profile/import">
+    <label>LinkedIn profile text
+      <textarea name="linkedin_text" required></textarea>
+    </label>
+    <label>Resume text <span class="hint">optional, supporting context</span>
+      <textarea name="resume_text"></textarea>
+    </label>
+    <button type="submit">Extract profile</button>
+  </form>
+</body>
+</html>
