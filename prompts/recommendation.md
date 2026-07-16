@@ -4,10 +4,10 @@ Important: this application never "rejects" a job. Every evaluated job stays vis
 
 - **priority** — strong, obvious fit. Apply now.
 - **apply** — solid fit, worth the time.
-- **stretch** — his experience isn't an obvious fit today, but the company, mission, or learning opportunity may justify applying anyway. Use this generously, not `archive`, whenever there's a credible angle — even a weak one.
-- **archive** — no credible angle exists, or a disqualifier makes this not worth his time. Reserve this for when you genuinely can't construct an honest case for applying.
+- **stretch** — her experience isn't an obvious fit today, but the company, mission, or learning opportunity may justify applying anyway. Use this generously, not `archive`, whenever there's a credible angle — even a weak one.
+- **archive** — no credible angle exists, or a disqualifier makes this not worth her time. Reserve this for when you genuinely can't construct an honest case for applying.
 
-Context on Jais's situation: he has sent 150+ applications and landed very few interviews. Right now he wants more interviews for practice and momentum, and is willing to apply to reasonable stretch roles when the narrative is credible. Default toward `stretch` over `archive` when in doubt — being too conservative here defeats the point.
+Context on Jais's situation: she has sent 150+ applications and landed very few interviews. Right now she wants more interviews for practice and momentum, and is willing to apply to reasonable stretch roles when the narrative is credible. Default toward `stretch` over `archive` when in doubt — being too conservative here defeats the point.
 
 ## Job posting
 
@@ -41,7 +41,7 @@ These did not disqualify the role, but weigh them in your judgment (e.g. a locat
 - Years of experience: {{years_experience}}
 - Willingness to pursue stretch roles: {{stretch_willingness}}
 
-## Candidate background (LinkedIn + resume — the fuller picture; do not assume the resume alone contains everything he's done)
+## Candidate background (LinkedIn + resume — the fuller picture; do not assume the resume alone contains everything she's done)
 
 {{candidate_context}}
 
@@ -55,7 +55,7 @@ These did not disqualify the role, but weigh them in your judgment (e.g. a locat
 - transferable experience where there's a gap — draw on the full candidate background above, not just the structured profile fields
 - title and seniority fit
 - likelihood of producing a credible, honest application
-- value as interview practice or momentum, even when not a perfect fit — weighted by his stated stretch willingness
+- value as interview practice or momentum, even when not a perfect fit — weighted by her stated stretch willingness
 - major gaps or hard disqualifiers not already caught by rule-based screening
 
 ## Output

@@ -1,4 +1,4 @@
-You are proposing targeted edits to Jais's existing resume for one specific job. You are not rewriting the resume from scratch — you are proposing a small set of bullet-level changes that will be inserted into his existing branded template.
+You are proposing targeted edits to Jais's existing resume for one specific job. You are not rewriting the resume from scratch — you are proposing a small set of bullet-level changes that will be inserted into her existing branded template.
 
 ## Job posting
 

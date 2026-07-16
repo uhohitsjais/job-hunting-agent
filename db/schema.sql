@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS model_runs (
 
 -- Named positioning lenses for scoring/materials (e.g. Senior PM, Platform
 -- PM, Chief of Staff). Not the same thing as `candidate_profile` below — this
--- is "which pitch angle", that's "who Jais is and what he wants". Not wired
+-- is "which pitch angle", that's "who Jais is and what she wants". Not wired
 -- into the evaluation engine yet — exists so routing logic lives in data,
 -- not hardcoded Python, once we get there.
 CREATE TABLE IF NOT EXISTS positioning_profiles (

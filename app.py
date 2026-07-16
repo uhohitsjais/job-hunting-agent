@@ -49,6 +49,36 @@ def cmd_score(args):
         )
 
 
+def cmd_fill(args):
+    from db.db import fetch_job_with_latest_evaluation, get_application, get_candidate_profile
+    from fill.greenhouse_fill import fill_greenhouse_application
+
+    job = fetch_job_with_latest_evaluation(settings.DATABASE_PATH, args.job_id)
+    if job is None:
+        print(f"No job with id {args.job_id}")
+        return
+    if job["source"] != "greenhouse":
+        print(f"Only Greenhouse fill is supported right now (this job is on {job['source']}).")
+        return
+
+    profile = get_candidate_profile(settings.DATABASE_PATH)
+    application = get_application(settings.DATABASE_PATH, args.job_id)
+
+    print(f"Opening {job['url']} ...")
+    result = fill_greenhouse_application(job["url"], profile, application, headless=False)
+
+    print("\nFilled:")
+    for item in result["filled"] or ["(nothing — check your candidate profile has contact info)"]:
+        print(" -", item)
+    print("\nLeft for you to complete manually:")
+    for item in result["skipped"]:
+        print(" -", item)
+
+    input("\nBrowser is open for review. Press Enter here to close it (this will NOT submit anything)...")
+    result["browser"].close()
+    result["playwright"].stop()
+
+
 def cmd_serve(args):
     from web.server import create_app
 
@@ -76,6 +106,11 @@ def main():
         "--rescore", action="store_true", help="Re-evaluate all jobs, not just unscored ones"
     )
     score_parser.set_defaults(func=cmd_score)
+    fill_parser = subparsers.add_parser(
+        "fill", help="Open a Greenhouse job's apply page and fill what it safely can"
+    )
+    fill_parser.add_argument("job_id", type=int)
+    fill_parser.set_defaults(func=cmd_fill)
     serve_parser = subparsers.add_parser("serve", help="Run the local web dashboard")
     serve_parser.add_argument("--port", type=int, default=None)
     serve_parser.set_defaults(func=cmd_serve)
