@@ -11,6 +11,7 @@ from db.db import (
     get_application,
     get_candidate_profile,
     get_connection,
+    get_pipeline_stats,
     group_jobs_by_decision,
     insert_model_run,
     update_candidate_profile,
@@ -20,6 +21,7 @@ from scoring.context import build_candidate_context
 
 ARRAY_FIELDS = [
     "target_titles",
+    "excluded_titles",
     "preferred_industries",
     "excluded_industries",
     "preferred_locations",
@@ -44,6 +46,7 @@ GROUP_LABELS = {
     "stretch": "Stretch",
     "archive": "Archive",
     "unscored": "Not yet scored",
+    "filtered_title": "Filtered (Title)",
 }
 
 
@@ -57,7 +60,22 @@ def create_app() -> Flask:
         sections = [
             (GROUP_LABELS[key], grouped[key]) for key in DECISION_GROUPS if grouped[key]
         ]
-        return render_template("dashboard.html", sections=sections, has_jobs=bool(jobs))
+        stats = get_pipeline_stats(settings.DATABASE_PATH)
+        just_ran = request.args.get("filter_ran") == "1"
+        return render_template(
+            "dashboard.html",
+            sections=sections,
+            has_jobs=bool(jobs),
+            stats=stats,
+            just_ran_filter=just_ran,
+        )
+
+    @app.post("/filter")
+    def run_filter():
+        from scoring.evaluate import apply_title_filter
+
+        apply_title_filter()
+        return redirect(url_for("dashboard", filter_ran="1"))
 
     @app.get("/health")
     def health():

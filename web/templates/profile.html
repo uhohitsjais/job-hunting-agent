@@ -46,8 +46,11 @@
         <input type="text" name="linkedin_url" value="{{ profile.linkedin_url or '' }}">
       </label>
     </fieldset>
-    <label>Target titles <span class="hint">comma-separated</span>
+    <label>Target titles <span class="hint">comma-separated — deterministic filter, checked before any AI call. Use broad keywords (e.g. "Product Manager"), not exact phrases, or eligible jobs may get filtered out</span>
       <textarea name="target_titles">{{ profile.target_titles | join(', ') }}</textarea>
+    </label>
+    <label>Excluded titles <span class="hint">comma-separated — deterministic filter, takes priority over target titles (e.g. "Engineer", "Security")</span>
+      <textarea name="excluded_titles">{{ profile.excluded_titles | join(', ') }}</textarea>
     </label>
     <label>Preferred industries <span class="hint">comma-separated, context for the AI only</span>
       <textarea name="preferred_industries">{{ profile.preferred_industries | join(', ') }}</textarea>

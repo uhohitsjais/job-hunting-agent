@@ -49,6 +49,17 @@ def cmd_score(args):
         )
 
 
+def cmd_filter(_args):
+    from db.db import get_pipeline_stats
+    from scoring.evaluate import apply_title_filter
+
+    apply_title_filter()
+    stats = get_pipeline_stats(settings.DATABASE_PATH)
+    print(f"Total sourced: {stats['total']}")
+    print(f"Filtered: {stats['filtered']}")
+    print(f"Eligible for scoring: {stats['eligible']}")
+
+
 def cmd_fill(args):
     from db.db import fetch_job_with_latest_evaluation, get_application, get_candidate_profile
     from fill.greenhouse_fill import fill_greenhouse_application
@@ -106,6 +117,9 @@ def main():
         "--rescore", action="store_true", help="Re-evaluate all jobs, not just unscored ones"
     )
     score_parser.set_defaults(func=cmd_score)
+    subparsers.add_parser(
+        "filter", help="Preview/apply the deterministic title filter without scoring anything"
+    ).set_defaults(func=cmd_filter)
     fill_parser = subparsers.add_parser(
         "fill", help="Open a Greenhouse job's apply page and fill what it safely can"
     )

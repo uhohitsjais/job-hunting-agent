@@ -9,6 +9,7 @@ SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
 PROFILE_ARRAY_FIELDS = [
     "target_titles",
+    "excluded_titles",
     "preferred_industries",
     "excluded_industries",
     "preferred_locations",
@@ -17,7 +18,15 @@ PROFILE_ARRAY_FIELDS = [
     "preferred_company_size",
 ]
 
-DECISION_GROUPS = ["priority", "apply", "stretch", "archive", "unscored"]
+DECISION_GROUPS = ["priority", "apply", "stretch", "archive", "unscored", "filtered_title"]
+
+# Lightweight ALTER TABLE migrations for columns added after a table's first
+# CREATE. `CREATE TABLE IF NOT EXISTS` won't add new columns to an existing
+# table, so new columns need an explicit ALTER here too. Safe to re-run —
+# duplicate-column errors are caught and ignored.
+MIGRATIONS = [
+    "ALTER TABLE candidate_profile ADD COLUMN excluded_titles TEXT NOT NULL DEFAULT '[]'",
+]
 
 
 def get_connection(db_path: str) -> sqlite3.Connection:
@@ -32,6 +41,12 @@ def init_db(db_path: str) -> None:
     conn = get_connection(db_path)
     try:
         conn.executescript(SCHEMA_PATH.read_text())
+        for statement in MIGRATIONS:
+            try:
+                conn.execute(statement)
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" not in str(exc):
+                    raise
         conn.commit()
     finally:
         conn.close()
@@ -87,14 +102,36 @@ def fetch_jobs_with_latest_evaluation(db_path: str) -> list[dict]:
 
 
 def group_jobs_by_decision(jobs: list[dict]) -> dict:
-    """Every evaluated job stays visible — this just buckets the flat list
-    from fetch_jobs_with_latest_evaluation for section display. Nothing is
-    dropped, including jobs with no evaluation yet ('unscored')."""
+    """Every job stays visible — this just buckets the flat list from
+    fetch_jobs_with_latest_evaluation for section display. Nothing is
+    dropped: jobs filtered out by the deterministic title pre-filter get
+    their own 'filtered_title' group (they were never sent to the LLM, so
+    they have no `decision`), separate from 'unscored' (eligible, just
+    hasn't been scored yet)."""
     groups: dict[str, list[dict]] = {key: [] for key in DECISION_GROUPS}
     for job in jobs:
-        key = job.get("decision") or "unscored"
+        if job.get("status") == "filtered_title":
+            key = "filtered_title"
+        else:
+            key = job.get("decision") or "unscored"
         groups.setdefault(key, []).append(job)
     return groups
+
+
+def get_pipeline_stats(db_path: str) -> dict:
+    conn = get_connection(db_path)
+    try:
+        def count(where: str = "") -> int:
+            return conn.execute(f"SELECT COUNT(*) AS n FROM jobs {where}").fetchone()["n"]
+
+        return {
+            "total": count(),
+            "filtered": count("WHERE status = 'filtered_title'"),
+            "eligible": count("WHERE status = 'sourced'"),
+            "scored": count("WHERE status = 'scored'"),
+        }
+    finally:
+        conn.close()
 
 
 def fetch_job_with_latest_evaluation(db_path: str, job_id: int) -> dict | None:

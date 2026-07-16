@@ -17,12 +17,15 @@ cp .env.example .env
 ```bash
 python app.py init      # create/update data/jobs.db (safe to re-run)
 python app.py fetch     # pull job postings from companies in config/companies.yaml
-python app.py score     # evaluate sourced jobs against your candidate profile (add --rescore to redo all)
+python app.py filter    # deterministic title pre-filter - no LLM calls, preview savings before scoring
+python app.py score     # evaluate eligible jobs against your candidate profile (add --rescore to redo all)
 python app.py status    # print row counts for every table
 python app.py serve     # start the dashboard at http://localhost:5000
 ```
 
-`/health` returns `{"status": "ok"}`. Visit `/profile` to fill in your candidate profile before scoring — it's empty by default.
+Workflow: **fetch → filter → (review) → score**. Each stage is explicit and separate — `score` no longer runs the title filter automatically, so if you skip `filter`, every sourced job gets scored (same as before this stage existed).
+
+`/health` returns `{"status": "ok"}`. Visit `/profile` to fill in your candidate profile before scoring — new profiles get sensible title-filter defaults seeded automatically (see Candidate Profile below), everything else starts empty.
 
 ## Adding a company to fetch from
 
@@ -38,21 +41,27 @@ A 200 with job data confirms it; a 404 means wrong slug or that company isn't on
 
 ## Candidate Profile
 
-`/profile` is the source of truth for evaluation — structured fields only, no narrative text: target titles, preferred/excluded industries, preferred locations, remote preference, min/preferred salary, strongest skills, known gaps, preferred company size, years of experience, stretch-role willingness. List fields take comma-separated values. Edit it in the browser, not in a prompt file.
+`/profile` is the source of truth for evaluation — structured fields only, no narrative text: target/excluded titles (deterministic filter), preferred/excluded industries, preferred locations, remote preference, min/preferred salary, strongest skills, known gaps, preferred company size, years of experience, stretch-role willingness, plus contact info (name/email/phone/LinkedIn URL) used when filling applications. List fields take comma-separated values. `/profile/import` extracts a first draft from pasted LinkedIn/resume text for review before saving. Edit it in the browser, not in a prompt file.
+
+New profiles get seeded with sensible title-filter defaults (`target_titles`: product manager, product operations, chief of staff; `excluded_titles`: engineer, designer, accountant, accounting, finance, security, attorney, counsel, sales, recruiter, hr, people partner, customer support) — this only happens once, on first creation of the profile row; re-running `python app.py init` never overwrites an existing, customized profile.
+
+## Deterministic title filter (`python app.py filter`)
+
+Runs before any LLM call, costs nothing: case-insensitive substring match against `target_titles`/`excluded_titles`. Excluded titles always win. A job passes if its title contains any target-title substring (e.g. target `product manager` matches "Senior Product Manager", "Product Manager, Payments Experience", "VP, Product Manager" — no exact-phrase match required) and doesn't contain any excluded-title substring. Jobs that fail move to `jobs.status = 'filtered_title'` — never deleted, still browsable in the dashboard's "Filtered (Title)" section. This is a separate, explicit pipeline stage — `score` does not run it automatically, so you control when it happens (and can preview the impact via the dashboard's "Run Title Filter" button or the CLI before spending any API budget).
 
 ## How scoring works (`python app.py score`)
 
-Hybrid, two-stage, per job:
+Only touches jobs still in `sourced` status (i.e. already past the title filter, if you ran it). Hybrid, two-stage, per job:
 
-1. **Deterministic rules first** (`scoring/rules.py`, pure Python, no API call): checks salary floor, remote/location fit, and excluded industries. Anything failing here is an instant `skip` with the specific reason recorded — the LLM is never called.
-2. **LLM judgment second** (only for jobs that pass rules): the OpenAI Responses API answers the subjective questions — should you spend time on this, strongest selling points, biggest gaps, positioning strategy, is it a worthwhile stretch. It also sees any non-fatal rule flags (e.g. "onsite in a non-preferred location") as context.
+1. **Deterministic rules** (`scoring/rules.py`, pure Python, no API call): checks salary floor, remote/location fit, and excluded industries. Anything failing here is an instant `archive` with the specific reason recorded — the LLM is never called.
+2. **LLM judgment** (only for jobs that pass rules): the OpenAI Responses API answers the subjective questions — should you spend time on this, strongest selling points, biggest gaps, positioning strategy, is it a worthwhile stretch. Decisions are `priority | apply | stretch | archive` — no job is ever hidden or rejected, only grouped.
 
-Every evaluation — rule-based skip or LLM judgment — writes a row to `job_evaluations`. Re-scoring a job adds a new row rather than overwriting the old one, so you can compare results across profile edits, prompt edits, or model changes over time. A job only gets marked `scored` if an evaluation actually completed; failed OpenAI calls (bad/missing key, rate limit) are logged to `model_runs.error_message` and the job stays `sourced` so `python app.py score` retries it next time, without you losing the rest of the batch.
+Every evaluation — rule-based archive or LLM judgment — writes a row to `job_evaluations`. Re-scoring a job adds a new row rather than overwriting the old one, so you can compare results across profile edits, prompt edits, or model changes over time. A job only gets marked `scored` if an evaluation actually completed; failed OpenAI calls (bad/missing key, rate limit) are logged to `model_runs.error_message` and the job stays `sourced` so `python app.py score` retries it next time, without you losing the rest of the batch.
 
-## Current state (Milestone 4)
+## Current state
 
-- Sourcing (M2): `jobs/greenhouse.py`, `jobs/lever.py`, `jobs/ashby.py` return the same `NormalizedJob` shape; `jobs/fetch.py` handles fetch + dedup. Currently configured: Gusto, Rover, Patreon (~115 postings). Expanding to the full target list is Milestone 5.
-- Scoring (M4): implemented and tested end-to-end for the rule-only path (confirmed real disqualifications fire correctly) and the failure path (confirmed a missing API key logs cleanly without crashing the batch). **Not yet verified against a live OpenAI call** — needs `OPENAI_API_KEY` + `OPENAI_MODEL` in `.env`.
+- Sourcing: `jobs/greenhouse.py`, `jobs/lever.py`, `jobs/ashby.py` return the same `NormalizedJob` shape; `jobs/fetch.py` handles fetch + dedup. Currently configured: Gusto, Rover, Patreon (~115 postings). Expanding to the full target list is a deferred milestone.
+- Scoring: verified end-to-end against a live OpenAI call (not just structurally) — the hybrid rules+LLM engine, the title filter, LinkedIn/resume import + extraction, job detail page, resume-summary/cover-letter draft generation, and a Playwright-based Greenhouse partial-fill are all built and tested against real data.
 - `positioning_profiles` (renamed from `candidate_profiles`) holds 5 seeded archetype rows (Senior PM, Platform PM, Marketplace PM, Product Operations, Chief of Staff) — a future resume/story routing layer, still not wired into scoring.
 - `candidate_stories` is empty — populate it with real, honest examples of your work before scoring cites strong evidence; until then the AI is told explicitly not to fabricate evidence.
 - No automated application submission exists anywhere in this project, and won't until you explicitly ask for it.

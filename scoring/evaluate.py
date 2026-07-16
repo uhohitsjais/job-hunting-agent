@@ -15,6 +15,36 @@ from db.db import (
 
 from .context import build_candidate_context
 from .rules import apply_deterministic_rules
+from .title_filter import passes_title_filter
+
+
+def apply_title_filter() -> dict:
+    """Deterministic pre-filter, runs before any LLM call — no exceptions.
+    Moves currently-'sourced' jobs that fail the title filter to
+    'filtered_title'. Idempotent: only touches jobs still in 'sourced', so
+    re-running never re-filters an already-scored or already-filtered job.
+
+    This is its own explicit pipeline stage (`python app.py filter`, or the
+    dashboard's "Run Title Filter" button) — evaluate_all() no longer calls
+    it automatically. The intended workflow is fetch -> filter -> (review) ->
+    score, with control over each stage."""
+    profile = get_candidate_profile(settings.DATABASE_PATH)
+    jobs = fetch_jobs_by_status(settings.DATABASE_PATH, "sourced")
+
+    conn = get_connection(settings.DATABASE_PATH)
+    filtered = 0
+    eligible = 0
+    try:
+        for job in jobs:
+            if passes_title_filter(job["title"], profile):
+                eligible += 1
+            else:
+                mark_job_status(conn, job["id"], "filtered_title")
+                filtered += 1
+        conn.commit()
+    finally:
+        conn.close()
+    return {"filtered": filtered, "eligible": eligible}
 
 
 def evaluate_job(conn, job: dict, profile: dict, stories: list[dict], provider) -> str:
@@ -118,8 +148,17 @@ def evaluate_all(rescore: bool = False) -> dict:
     stories = fetch_approved_candidate_stories(settings.DATABASE_PATH)
 
     if rescore:
-        jobs = [dict(row) for row in fetch_all_jobs(settings.DATABASE_PATH)]
+        # --rescore redoes LLM judgment, not the deterministic title gate —
+        # jobs already filtered_title stay excluded. Run `python app.py
+        # filter` separately first if you want the gate reconsidered too.
+        all_jobs = [dict(row) for row in fetch_all_jobs(settings.DATABASE_PATH)]
+        jobs = [job for job in all_jobs if job["status"] != "filtered_title"]
     else:
+        # Only jobs already past the title filter (still 'sourced' means
+        # eligible here — anything that failed the filter is
+        # 'filtered_title' by the time this runs, assuming `filter` was run
+        # first). If you skip the filter step, everything 'sourced' gets
+        # scored, same as before this feature existed.
         jobs = fetch_jobs_by_status(settings.DATABASE_PATH, "sourced")
 
     conn = get_connection(settings.DATABASE_PATH)

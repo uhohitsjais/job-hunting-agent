@@ -16,7 +16,9 @@ CREATE TABLE IF NOT EXISTS jobs (
     description TEXT,                  -- raw JD text
     jd_hash TEXT,                      -- hash of description, for change detection
     status TEXT NOT NULL DEFAULT 'sourced',
-        -- sourced | scored | drafted | reviewed | approved | applied | skipped
+        -- sourced | filtered_title | scored | drafted | reviewed | approved | applied | skipped
+        -- filtered_title = failed the deterministic title pre-filter (scoring/title_filter.py)
+        -- before ever reaching the LLM; still browsable, never deleted.
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (source, external_id)
@@ -100,7 +102,8 @@ CREATE TABLE IF NOT EXISTS candidate_profile (
     linkedin_url TEXT,
     linkedin_text TEXT,                 -- raw pasted LinkedIn profile text, source for extraction + context
     resume_text TEXT,                   -- raw pasted resume text, supporting context
-    target_titles TEXT NOT NULL DEFAULT '[]',           -- JSON array of strings
+    target_titles TEXT NOT NULL DEFAULT '[]',           -- JSON array of strings, deterministic title filter
+    excluded_titles TEXT NOT NULL DEFAULT '[]',         -- JSON array of strings, deterministic title filter
     preferred_industries TEXT NOT NULL DEFAULT '[]',    -- JSON array of strings, LLM context only
     excluded_industries TEXT NOT NULL DEFAULT '[]',     -- JSON array of strings, hard rule
     preferred_locations TEXT NOT NULL DEFAULT '[]',     -- JSON array of strings
@@ -115,7 +118,15 @@ CREATE TABLE IF NOT EXISTS candidate_profile (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-INSERT OR IGNORE INTO candidate_profile (id) VALUES (1);
+-- Sensible starting point for the title filter on a brand-new profile.
+-- INSERT OR IGNORE means this only ever fires once, on first creation of
+-- row id=1 — re-running `init` never touches an existing, possibly
+-- customized profile.
+INSERT OR IGNORE INTO candidate_profile (id, target_titles, excluded_titles) VALUES (
+    1,
+    '["product manager", "product operations", "chief of staff"]',
+    '["engineer", "designer", "accountant", "accounting", "finance", "security", "attorney", "counsel", "sales", "recruiter", "hr", "people partner", "customer support"]'
+);
 
 -- Historical evaluation records: every time a job is scored, a new row is
 -- added here rather than overwriting the previous one. This is what lets us
