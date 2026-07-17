@@ -12,10 +12,7 @@
     .decision-apply { background: #e8f0fe; color: #1a56c4; }
     .decision-stretch { background: #fff4e5; color: #a15c00; }
     .decision-archive { background: #f1f1f1; color: #666; }
-    .confidence-high { background: #e6f4ea; color: #1e7e34; }
-    .confidence-medium { background: #fff4e5; color: #a15c00; }
-    .confidence-low { background: #fdecea; color: #a1260d; }
-    .score-secondary { color: #888; font-size: 0.9rem; font-weight: normal; }
+    .score { font-size: 1.1rem; font-weight: 700; }
     .exec-summary { font-size: 1.15rem; font-style: italic; border-left: 3px solid #ccc; padding-left: 0.75rem; margin: 1rem 0; }
     h2 { margin-top: 2rem; font-size: 1.1rem; }
     ul { padding-left: 1.2rem; }
@@ -37,9 +34,8 @@
 
   {% if rec.has_evaluation %}
   <p>
+    <span class="score">{{ rec.score }}/100</span>
     <span class="badge decision-{{ rec.decision }}">{{ rec.decision | capitalize }}</span>
-    <span class="badge confidence-{{ rec.confidence | lower }}">Confidence: {{ rec.confidence }}</span>
-    <span class="score-secondary">(score: {{ rec.score }}/100)</span>
   </p>
 
   <p class="exec-summary">{{ rec.executive_summary }}</p>

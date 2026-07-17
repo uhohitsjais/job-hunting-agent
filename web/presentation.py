@@ -20,32 +20,6 @@ def _split_sentences(text: str | None) -> list[str]:
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
 
-def compute_confidence(evaluation: dict) -> str:
-    """Heuristic derived from the *net balance* of evidence already in the
-    stored evaluation — NOT a model-reported confidence (the model was
-    never asked for one, and this milestone doesn't add that ask). Rule-
-    based disqualifications are always 'High' since they're deterministic,
-    not a judgment call.
-
-    Deliberately net-based rather than raw-count-based: a thorough,
-    honest gap analysis (several gaps noted) alongside strong evidence
-    shouldn't read as 'low confidence' just because the gap list is long —
-    what matters is whether strengths clearly outweigh gaps, are roughly
-    balanced, or are clearly outweighed by them."""
-    if evaluation.get("disqualifiers"):
-        return "High"
-    reasons_count = len(evaluation.get("reasons_to_apply") or [])
-    gaps_count = len(evaluation.get("gaps") or [])
-    if reasons_count == 0 and gaps_count == 0:
-        return "Low"
-    net = reasons_count - gaps_count
-    if net >= 2:
-        return "High"
-    if net <= -2:
-        return "Low"
-    return "Medium"
-
-
 def extract_executive_summary(evaluation: dict) -> str:
     """First sentence of positioning_strategy. In practice the existing
     prompt already tends to lead with a decisive framing statement ("Do
@@ -75,14 +49,22 @@ def extract_transferable_experience(evaluation: dict) -> list[str]:
 
 def build_recommendation_view(evaluation: dict) -> dict:
     """Everything the templates need for Recommendation Quality V1 —
-    derived entirely from already-stored job_evaluations fields."""
+    derived entirely from already-stored job_evaluations fields.
+
+    No confidence field, deliberately: an earlier version inferred
+    High/Medium/Low from evidence counts, but that's an engineering
+    heuristic, not something the model actually said — it produced
+    unintuitive results (e.g. "Medium confidence" on an 82/100 apply,
+    "High confidence" on a 3/100 archive) and user testing rejected it
+    immediately. Fit score is the primary quantitative signal; if genuine
+    model-reported confidence is wanted later, it needs to come from the
+    LLM explicitly returning it, not be inferred after the fact."""
     if not evaluation.get("decision"):
         return {"has_evaluation": False}
     return {
         "has_evaluation": True,
         "decision": evaluation["decision"],
         "score": evaluation.get("score"),
-        "confidence": compute_confidence(evaluation),
         "executive_summary": extract_executive_summary(evaluation),
         "top_strengths": (evaluation.get("reasons_to_apply") or [])[:5],
         "top_gaps": (evaluation.get("gaps") or [])[:3],
