@@ -94,6 +94,12 @@
   <form method="post" action="/jobs/{{ job.id }}/materials" style="margin-top: 0.5rem;">
     <button type="submit">Regenerate</button>
   </form>
+  <p class="hint" style="margin-top: 1rem;">Career Brain documents used in this generation:</p>
+  {% if application.career_brain_docs %}
+  <ul class="hint">{% for doc in application.career_brain_docs %}<li>{{ doc }}</li>{% endfor %}</ul>
+  {% else %}
+  <p class="hint">None — career_brain/ was empty at generation time (LinkedIn/resume context only).</p>
+  {% endif %}
   {% endif %}
 </body>
 </html>

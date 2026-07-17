@@ -26,6 +26,7 @@ DECISION_GROUPS = ["priority", "apply", "stretch", "archive", "unscored", "filte
 # duplicate-column errors are caught and ignored.
 MIGRATIONS = [
     "ALTER TABLE candidate_profile ADD COLUMN excluded_titles TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE applications ADD COLUMN career_brain_docs TEXT",
 ]
 
 

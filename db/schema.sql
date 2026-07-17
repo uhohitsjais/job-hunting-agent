@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS applications (
     job_id INTEGER NOT NULL REFERENCES jobs(id),
     resume_summary TEXT,               -- generated text, reviewable/editable; DOCX injection is M8, not yet built
     cover_letter_body TEXT,            -- generated text, reviewable/editable
+    career_brain_docs TEXT,            -- JSON array of career_brain/ doc paths used in this generation, for reproducibility
     resume_path TEXT,                  -- populated once M8 (branded DOCX injection) exists
     cover_letter_path TEXT,
     status TEXT NOT NULL DEFAULT 'draft',

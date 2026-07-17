@@ -17,6 +17,7 @@ from db.db import (
     update_candidate_profile,
     upsert_application,
 )
+from materials.career_brain import load_career_brain_context
 from scoring.context import build_candidate_context
 from web.presentation import build_recommendation_view
 
@@ -88,6 +89,8 @@ def create_app() -> Flask:
         if job is None:
             return "Job not found", 404
         application = get_application(settings.DATABASE_PATH, job_id)
+        if application and application.get("career_brain_docs"):
+            application["career_brain_docs"] = json.loads(application["career_brain_docs"])
         rec = build_recommendation_view(job)
         return render_template("job_detail.html", job=job, application=application, rec=rec)
 
@@ -102,7 +105,15 @@ def create_app() -> Flask:
         provider = OpenAIProvider()
         profile = get_candidate_profile(settings.DATABASE_PATH)
         stories = fetch_approved_candidate_stories(settings.DATABASE_PATH)
-        candidate_context = build_candidate_context(profile)
+        base_context = build_candidate_context(profile)
+        career_brain_text, career_brain_docs = load_career_brain_context()
+        candidate_context = base_context
+        if career_brain_text:
+            candidate_context = (
+                base_context
+                + "\n\n---\n\nCareer Brain (long-term source of truth):\n\n"
+                + career_brain_text
+            )
 
         conn = get_connection(settings.DATABASE_PATH)
         try:
@@ -116,7 +127,7 @@ def create_app() -> Flask:
                 prompt_file=summary_meta.prompt_file,
                 prompt_version=summary_meta.prompt_version,
                 model_name=summary_meta.model_name,
-                input_context=json.dumps(summary_meta.input_context),
+                input_context=json.dumps({**summary_meta.input_context, "career_brain_docs": career_brain_docs}),
                 raw_output=summary_meta.raw_output,
                 parsed_output=json.dumps({"summary": summary_result.summary}),
                 success=1,
@@ -133,7 +144,7 @@ def create_app() -> Flask:
                 prompt_file=letter_meta.prompt_file,
                 prompt_version=letter_meta.prompt_version,
                 model_name=letter_meta.model_name,
-                input_context=json.dumps(letter_meta.input_context),
+                input_context=json.dumps({**letter_meta.input_context, "career_brain_docs": career_brain_docs}),
                 raw_output=letter_meta.raw_output,
                 parsed_output=json.dumps({"body": letter_result.body}),
                 success=1,
@@ -164,6 +175,7 @@ def create_app() -> Flask:
             job_id,
             resume_summary=summary_result.summary,
             cover_letter_body=letter_result.body,
+            career_brain_docs=json.dumps(career_brain_docs),
             status="draft",
         )
         return redirect(url_for("job_detail", job_id=job_id))

@@ -60,6 +60,18 @@ def cmd_filter(_args):
     print(f"Eligible for scoring: {stats['eligible']}")
 
 
+def cmd_career_brain(_args):
+    from materials.career_brain import load_career_brain_context
+
+    _, paths = load_career_brain_context()
+    if not paths:
+        print("No Career Brain documents found under career_brain/. See career_brain/README.md.")
+        return
+    print(f"{len(paths)} document(s) would be loaded at generation time:")
+    for path in paths:
+        print(" -", path)
+
+
 def cmd_fill(args):
     from db.db import fetch_job_with_latest_evaluation, get_application, get_candidate_profile
     from fill.greenhouse_fill import fill_greenhouse_application
@@ -120,6 +132,9 @@ def main():
     subparsers.add_parser(
         "filter", help="Preview/apply the deterministic title filter without scoring anything"
     ).set_defaults(func=cmd_filter)
+    subparsers.add_parser(
+        "career-brain", help="List which career_brain/ documents would be loaded at generation time"
+    ).set_defaults(func=cmd_career_brain)
     fill_parser = subparsers.add_parser(
         "fill", help="Open a Greenhouse job's apply page and fill what it safely can"
     )

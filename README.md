@@ -58,10 +58,17 @@ Only touches jobs still in `sourced` status (i.e. already past the title filter,
 
 Every evaluation — rule-based archive or LLM judgment — writes a row to `job_evaluations`. Re-scoring a job adds a new row rather than overwriting the old one, so you can compare results across profile edits, prompt edits, or model changes over time. A job only gets marked `scored` if an evaluation actually completed; failed OpenAI calls (bad/missing key, rate limit) are logged to `model_runs.error_message` and the job stays `sourced` so `python app.py score` retries it next time, without you losing the rest of the batch.
 
+## Career Brain (`career_brain/`)
+
+The long-term source of truth about you as a candidate — markdown files on disk, no database, no embeddings, no vector search. See `career_brain/README.md` for the full explanation. Short version: drop `.md` files into `career_brain/profile/`, `career_brain/stories/`, `career_brain/evidence/`, `career_brain/preferences/` and they're automatically included in every future resume-summary/cover-letter generation — no registration, no restart. `python app.py career-brain` previews exactly which documents would be loaded, without generating anything.
+
+Career Brain content layers **on top of** your existing LinkedIn/resume context for materials generation — it doesn't replace it, so generation quality never regresses even while the folder is empty. It does **not** feed recommendation scoring (`recommend_job`) at all — that stays exactly as it was, reading only your structured profile + LinkedIn/resume text. Every generation records exactly which Career Brain documents it used (`applications.career_brain_docs`), shown on the job detail page, so any past resume/cover letter is reproducible.
+
 ## Current state
 
 - Sourcing: `jobs/greenhouse.py`, `jobs/lever.py`, `jobs/ashby.py` return the same `NormalizedJob` shape; `jobs/fetch.py` handles fetch + dedup. Currently configured: Gusto, Rover, Patreon (~115 postings). Expanding to the full target list is a deferred milestone.
 - Scoring: verified end-to-end against a live OpenAI call (not just structurally) — the hybrid rules+LLM engine, the title filter, LinkedIn/resume import + extraction, job detail page, resume-summary/cover-letter draft generation, and a Playwright-based Greenhouse partial-fill are all built and tested against real data.
+- Materials generation now also pulls from Career Brain (see above) — verified end-to-end with a real generation while the folder was still empty (graceful no-op) and with isolated unit tests proving the non-empty path builds the combined context correctly.
 - `positioning_profiles` (renamed from `candidate_profiles`) holds 5 seeded archetype rows (Senior PM, Platform PM, Marketplace PM, Product Operations, Chief of Staff) — a future resume/story routing layer, still not wired into scoring.
-- `candidate_stories` is empty — populate it with real, honest examples of your work before scoring cites strong evidence; until then the AI is told explicitly not to fabricate evidence.
+- `candidate_stories` (SQLite table) is empty — separate from Career Brain (markdown files); populate whichever one you actually use before scoring/materials cite strong evidence. Until then the AI is told explicitly not to fabricate evidence.
 - No automated application submission exists anywhere in this project, and won't until you explicitly ask for it.
