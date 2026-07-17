@@ -18,6 +18,7 @@ from db.db import (
     upsert_application,
 )
 from scoring.context import build_candidate_context
+from web.presentation import build_recommendation_view, compute_confidence
 
 ARRAY_FIELDS = [
     "target_titles",
@@ -56,6 +57,8 @@ def create_app() -> Flask:
     @app.get("/")
     def dashboard():
         jobs = fetch_jobs_with_latest_evaluation(settings.DATABASE_PATH)
+        for job in jobs:
+            job["confidence"] = compute_confidence(job) if job.get("decision") else None
         grouped = group_jobs_by_decision(jobs)
         sections = [
             (GROUP_LABELS[key], grouped[key]) for key in DECISION_GROUPS if grouped[key]
@@ -87,7 +90,8 @@ def create_app() -> Flask:
         if job is None:
             return "Job not found", 404
         application = get_application(settings.DATABASE_PATH, job_id)
-        return render_template("job_detail.html", job=job, application=application)
+        rec = build_recommendation_view(job)
+        return render_template("job_detail.html", job=job, application=application, rec=rec)
 
     @app.post("/jobs/<int:job_id>/materials")
     def generate_materials(job_id):

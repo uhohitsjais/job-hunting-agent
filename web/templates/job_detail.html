@@ -7,14 +7,20 @@
     body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; max-width: 800px; }
     nav { margin-bottom: 1.5rem; }
     nav a { margin-right: 1rem; }
-    .decision { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.9rem; font-weight: 600; margin-left: 0.5rem; }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.9rem; font-weight: 600; margin-right: 0.4rem; }
     .decision-priority { background: #e6f4ea; color: #1e7e34; }
     .decision-apply { background: #e8f0fe; color: #1a56c4; }
     .decision-stretch { background: #fff4e5; color: #a15c00; }
     .decision-archive { background: #f1f1f1; color: #666; }
-    h2 { margin-top: 2rem; }
+    .confidence-high { background: #e6f4ea; color: #1e7e34; }
+    .confidence-medium { background: #fff4e5; color: #a15c00; }
+    .confidence-low { background: #fdecea; color: #a1260d; }
+    .score-secondary { color: #888; font-size: 0.9rem; font-weight: normal; }
+    .exec-summary { font-size: 1.15rem; font-style: italic; border-left: 3px solid #ccc; padding-left: 0.75rem; margin: 1rem 0; }
+    h2 { margin-top: 2rem; font-size: 1.1rem; }
     ul { padding-left: 1.2rem; }
     .meta { color: #555; }
+    .hint { color: #888; font-size: 0.8rem; }
     .description { white-space: pre-wrap; background: #fafafa; padding: 1rem; border-radius: 4px; max-height: 20rem; overflow-y: auto; }
     textarea { width: 100%; min-height: 8rem; padding: 0.5rem; font-family: inherit; font-size: 1rem; box-sizing: border-box; }
     button { margin-top: 0.75rem; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
@@ -26,28 +32,49 @@
   {% if request.args.get('error') == 'materials_failed' %}
   <p class="error">Material generation failed — check model_runs.error_message (likely a missing/invalid OPENAI_API_KEY or OPENAI_MODEL).</p>
   {% endif %}
-  <h1>{{ job.title }}
-    {% if job.decision %}<span class="decision decision-{{ job.decision }}">{{ job.decision }} — {{ job.score }}</span>{% endif %}
-  </h1>
+  <h1>{{ job.title }}</h1>
   <p class="meta">{{ job.company }} · {{ job.location or 'location unspecified' }} · {{ job.remote_type }} · <a href="{{ job.url }}" target="_blank">view posting ↗</a></p>
 
-  {% if job.decision %}
-  <h2>Why this recommendation</h2>
-  <p><strong>Positioning strategy:</strong> {{ job.positioning_strategy }}</p>
-  {% if job.reasons_to_apply %}
-  <p><strong>Strongest reasons to apply:</strong></p>
-  <ul>{% for r in job.reasons_to_apply %}<li>{{ r }}</li>{% endfor %}</ul>
+  {% if rec.has_evaluation %}
+  <p>
+    <span class="badge decision-{{ rec.decision }}">{{ rec.decision | capitalize }}</span>
+    <span class="badge confidence-{{ rec.confidence | lower }}">Confidence: {{ rec.confidence }}</span>
+    <span class="score-secondary">(score: {{ rec.score }}/100)</span>
+  </p>
+
+  <p class="exec-summary">{{ rec.executive_summary }}</p>
+
+  <h2>Top matching strengths</h2>
+  {% if rec.top_strengths %}
+  <ul>{% for s in rec.top_strengths %}<li>{{ s }}</li>{% endfor %}</ul>
+  {% else %}
+  <p class="hint">None recorded for this evaluation.</p>
   {% endif %}
-  {% if job.gaps %}
-  <p><strong>Gaps:</strong></p>
-  <ul>{% for g in job.gaps %}<li>{{ g }}</li>{% endfor %}</ul>
+
+  <h2>Biggest gaps</h2>
+  {% if rec.top_gaps %}
+  <ul>{% for g in rec.top_gaps %}<li>{{ g }}</li>{% endfor %}</ul>
+  {% else %}
+  <p class="hint">None recorded for this evaluation.</p>
   {% endif %}
-  {% if job.disqualifiers %}
-  <p><strong>Disqualifiers:</strong></p>
-  <ul>{% for d in job.disqualifiers %}<li>{{ d }}</li>{% endfor %}</ul>
+
+  <h2>Transferable experience</h2>
+  <p class="hint">Compensates for the gaps above — pulled from the positioning strategy and strengths, not a separate model output.</p>
+  {% if rec.transferable_experience %}
+  <ul>{% for t in rec.transferable_experience %}<li>{{ t }}</li>{% endfor %}</ul>
+  {% else %}
+  <p class="hint">Nothing distinct extracted — see positioning strategy below.</p>
+  {% endif %}
+
+  <h2>Positioning strategy</h2>
+  <p>{{ rec.positioning_strategy }}</p>
+
+  {% if rec.disqualifiers %}
+  <h2>Disqualifiers</h2>
+  <ul>{% for d in rec.disqualifiers %}<li>{{ d }}</li>{% endfor %}</ul>
   {% endif %}
   {% else %}
-  <p class="meta">Not yet scored. Run <code>python app.py score</code>.</p>
+  <p class="meta">Not yet scored. Run <code>python app.py score</code> (after <code>python app.py filter</code>).</p>
   {% endif %}
 
   <h2>Job description</h2>

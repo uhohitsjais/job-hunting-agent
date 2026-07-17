@@ -24,6 +24,10 @@
     .stats form { margin-left: auto; }
     .stats button { padding: 0.5rem 1rem; font-size: 0.95rem; cursor: pointer; }
     .banner { background: #e6f4ea; color: #1e7e34; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; }
+    .confidence-high { color: #1e7e34; font-weight: 600; }
+    .confidence-medium { color: #a15c00; font-weight: 600; }
+    .confidence-low { color: #a1260d; font-weight: 600; }
+    .score-secondary { color: #999; }
   </style>
 </head>
 <body>
@@ -49,16 +53,17 @@
       <h2>{{ label }} ({{ jobs | length }})</h2>
       <table>
         <thead>
-          <tr><th>Score</th><th>Company</th><th>Title</th><th>Source</th><th>Status</th></tr>
+          <tr><th>Confidence</th><th>Company</th><th>Title</th><th>Source</th><th>Status</th><th>Score</th></tr>
         </thead>
         <tbody>
           {% for job in jobs %}
           <tr>
-            <td>{{ job.score if job.score is not none else '—' }}</td>
+            <td>{% if job.confidence %}<span class="confidence-{{ job.confidence | lower }}">{{ job.confidence }}</span>{% else %}—{% endif %}</td>
             <td>{{ job.company }}</td>
             <td><a href="/jobs/{{ job.id }}">{{ job.title }}</a></td>
             <td>{{ job.source }}</td>
             <td>{{ job.status }}</td>
+            <td class="score-secondary">{{ job.score if job.score is not none else '—' }}</td>
           </tr>
           {% endfor %}
         </tbody>
