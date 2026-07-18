@@ -4,22 +4,30 @@ Goal: smallest working tool that finds PM jobs from Greenhouse/Lever/Ashby, scor
 
 Stack: Python + SQLite + Flask + Playwright. OpenAI Responses API for all candidate-facing scoring/writing, behind a provider interface. Rule: **app stays runnable after every checkpoint.**
 
-Two things needed from you before their checkpoints hit: a PM candidate profile/narrative doc (needed by M4) and your branded DOCX resume/cover-letter templates (needed by M8).
+One thing still needed from you: your branded DOCX resume/cover-letter templates (needed for M8 — DOCX injection). Everything else that was originally blocked has been resolved: the candidate profile is now a structured `/profile` page (no narrative doc needed), and Career Brain (`career_brain/`) has replaced the assumption that LinkedIn/resume text alone would be enough context.
 
-| # | Hours | Milestone | Acceptance criteria |
-|---|-------|-----------|---------------------|
-| M1 | 0–3 | Runnable skeleton + SQLite schema | ✅ Done. `python app.py init` creates `data/jobs.db` idempotently; `providers/base.py` interface + `OpenAIProvider` stub |
-| M2 | 3–6 | Fetch real jobs from 3 test companies | ✅ Done. Gusto (Greenhouse), Rover (Lever), Patreon (Ashby) — 114 postings, deduped via upsert on `(source, external_id)`. Connectors live in `jobs/` and return a shared `NormalizedJob` type; nothing downstream branches on ATS |
-| M3 | 6–9 | Basic web dashboard | ✅ Done as a byproduct of M1+M2 — `python app.py serve` already shows the real fetched jobs in a plain HTML table. No extra work needed |
-| M4 | 9–13 | Hybrid recommendation engine | 🟡 Built and tested except the live LLM call. Structured `/profile` page (no narrative doc) replaces the profile-doc blocker. Deterministic rules (salary/location/excluded industries) run first — confirmed working. LLM call (judgment-only: should you apply, selling points, gaps, positioning, stretch worth it) implemented via OpenAI Responses API with structured JSON output — code path confirmed, failure handling confirmed, **live call still needs your `OPENAI_API_KEY` + `OPENAI_MODEL`** |
-| M5 | 13–16 | Expand sourcing to 10–15 companies | Add confirmed Greenhouse/Lever/Ashby companies from your target sheet to `config/companies.yaml`; re-fetch pulls from all of them; dashboard now has real volume |
-| M6 | 16–19 | Job detail page | Click into a job → see full JD, score, strongest matches, gaps, recommendation (apply/consider/skip) |
-| M7 | 19–23 | Draft resume content + cover letter | For jobs above a fit threshold, OpenAI generates structured resume bullet edits + cover letter text (not full documents yet) — stored per job, viewable on detail page |
-| M8 | 23–27 | Inject into branded DOCX templates | Approved content gets inserted into your existing `.docx` templates preserving formatting; output saved to `data/generated/`. **Blocked on:** your branded templates |
-| M9 | 27–31 | Review queue | Dashboard view: approve / edit / skip per job; status field moves Sourced → Drafted → Reviewed → Approved; this is the "wake up, spend an hour, done" screen |
-| M10 | 31–36 | Playwright fill — Greenhouse | For approved jobs on Greenhouse, opens a real browser, navigates to the apply page, fills standard fields (name, email, resume upload, work history) using known Greenhouse form structure, stops before Submit |
-| M11 | 36–40 | Lever/Ashby fill | Same as M10, extended to the other two ATSs — only attempted if Greenhouse fill is solid; if it's shaky, this slot becomes Greenhouse hardening instead |
-| M12 | 40–48 | Hardening + operating guide | Error logging on every model/scrape call (`data/logs/`), fix rough edges found in dogfooding, short README on how to run `fetch` → `score` → `serve` → review → `fill` daily |
+| # | Milestone | Status |
+|---|-----------|--------|
+| M1 | Runnable skeleton + SQLite schema | ✅ Done |
+| M2 | Fetch real jobs from 3 test companies | ✅ Done (Gusto/Greenhouse, Rover/Lever, Patreon/Ashby) |
+| M3 | Basic web dashboard | ✅ Done, byproduct of M1+M2 |
+| M4 | Hybrid recommendation engine | ✅ Done, verified against live OpenAI calls. Structured `/profile` (no narrative doc needed) is the source of truth; deterministic rules run first, LLM judgment second; decisions are `priority/apply/stretch/archive` — nothing is ever hidden, only grouped |
+| M5 | Expand sourcing to 10–15 companies | ✅ Done — 17 companies configured, 562 jobs sourced, 92 scored so far |
+| M6 | Job detail page | ✅ Done (`/jobs/<id>` — score, reasons, gaps, positioning strategy, executive summary) |
+| M7 | Draft resume content + cover letter | ✅ Done — plain-text resume summary + cover letter generation, reviewable/editable on the job detail page |
+| M8 | Inject into branded DOCX templates | ⏸️ Not started. **Blocked on:** your branded DOCX templates. Materials generation (M7) currently outputs plain text, no branded formatting yet |
+| M9 | Review queue | ⏸️ Not built as a dedicated dashboard view. In practice, review happens directly on the job detail page (edit resume summary/cover letter inline, regenerate) — revisit only if that stops being enough |
+| M10 | Playwright fill — Greenhouse | ✅ Done — `python app.py fill <job_id>` opens a real browser, fills contact info + LinkedIn + cover letter, always leaves résumé upload and work-authorization/demographic questions for manual completion, never submits |
+| M11 | Lever/Ashby fill | ⏸️ Deferred — Greenhouse fill works, but Lever/Ashby extensions not yet built |
+| M12 | Hardening + operating guide | ⏸️ Not started |
+
+## Milestones added beyond the original plan
+
+| Milestone | Status |
+|-----------|--------|
+| Deterministic title pre-filter | ✅ Done — case-insensitive substring match on target/excluded titles, runs before any LLM call, its own explicit pipeline stage (`fetch → filter → score`) |
+| Recommendation Quality V1 (presentation) | ✅ Done — top strengths, gaps, transferable experience, positioning strategy, executive summary, all derived from existing evaluation data, no new LLM calls. Confidence heuristic added then removed after user testing showed it was untrustworthy |
+| Career Brain V0.1 | ✅ Done — `career_brain/{profile,stories,evidence,preferences}/` markdown folders, read fresh at generation time, no database/embeddings/vector search. Feeds both materials generation and recommendation scoring, layered on top of (not replacing) LinkedIn/resume context. 10 real documents added so far (gitignored — contains real names, recommendation quotes, internal business data) |
 
 ## Rules that hold across every milestone
 - Never auto-click Submit. Ever.

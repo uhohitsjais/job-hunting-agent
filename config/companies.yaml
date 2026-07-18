@@ -15,3 +15,59 @@ companies:
     slug: patreon
     ats: ashby
     industry: Great Consumer
+  - name: TaskRabbit
+    slug: taskrabbit
+    ats: greenhouse
+    industry: Marketplaces
+  - name: Instawork
+    slug: instawork
+    ats: greenhouse
+    industry: Marketplaces
+  - name: Modern Health
+    slug: modernhealth
+    ats: greenhouse
+    industry: Health/Behavior
+  - name: Oura
+    slug: oura
+    ats: greenhouse
+    industry: Health/Behavior
+  - name: Omada Health
+    slug: omadahealth
+    ats: greenhouse
+    industry: Health/Behavior
+  - name: Maven Clinic
+    slug: mavenclinic
+    ats: greenhouse
+    industry: Health/Behavior
+  - name: Tia
+    slug: tia
+    ats: greenhouse
+    industry: Health/Behavior
+  - name: Guild
+    slug: guild
+    ats: greenhouse
+    industry: HR Tech/Benefits
+  - name: Carrot Fertility
+    slug: carrotfertility
+    ats: greenhouse
+    industry: HR Tech/Benefits
+  - name: Thumbtack
+    slug: thumbtack
+    ats: ashby
+    industry: Marketplaces
+  - name: ShiftKey
+    slug: shiftkey
+    ats: ashby
+    industry: Marketplaces
+  - name: BetterUp
+    slug: betterup
+    ats: ashby
+    industry: Health/Behavior
+  - name: Virta Health
+    slug: virtahealth
+    ats: ashby
+    industry: Health/Behavior
+  - name: Forma
+    slug: forma
+    ats: ashby
+    industry: HR Tech/Benefits
