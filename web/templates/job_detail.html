@@ -22,6 +22,15 @@
     textarea { width: 100%; min-height: 8rem; padding: 0.5rem; font-family: inherit; font-size: 1rem; box-sizing: border-box; }
     button { margin-top: 0.75rem; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
     .error { background: #fdecea; color: #a1260d; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; }
+    .analysis-panel { border: 1px solid #ddd; border-radius: 6px; padding: 0 1.25rem 1rem; margin-top: 1.5rem; }
+    .analysis-panel h2:first-child { margin-top: 1.25rem; }
+    .tag { display: inline-block; background: #eef2ff; color: #33449e; padding: 0.15rem 0.55rem; border-radius: 4px; font-size: 0.85rem; margin: 0.15rem 0.3rem 0.15rem 0; }
+    .filter-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    .filter-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee; }
+    .filter-status-passed { color: #1e7e34; }
+    .filter-status-failed { color: #a1260d; font-weight: 600; }
+    .filter-status-flagged { color: #a15c00; }
+    .filter-status-not { color: #999; }
   </style>
 </head>
 <body>
@@ -33,42 +42,72 @@
   <p class="meta">{{ job.company }} · {{ job.location or 'location unspecified' }} · {{ job.remote_type }} · <a href="{{ job.url }}" target="_blank">view posting ↗</a></p>
 
   {% if rec.has_evaluation %}
-  <p>
-    <span class="score">{{ rec.score }}/100</span>
-    <span class="badge decision-{{ rec.decision }}">{{ rec.decision | capitalize }}</span>
-  </p>
+  <div class="analysis-panel">
+    <h2>Overall Recommendation</h2>
+    <p>
+      <span class="score">{{ rec.score }}/100</span>
+      <span class="badge decision-{{ rec.decision }}">{{ rec.decision | capitalize }}</span>
+    </p>
 
-  <p class="exec-summary">{{ rec.executive_summary }}</p>
+    <h2>Why This Score</h2>
+    <p class="exec-summary">{{ rec.executive_summary }}</p>
+    <p>{{ rec.positioning_strategy }}</p>
 
-  <h2>Top matching strengths</h2>
-  {% if rec.top_strengths %}
-  <ul>{% for s in rec.top_strengths %}<li>{{ s }}</li>{% endfor %}</ul>
-  {% else %}
-  <p class="hint">None recorded for this evaluation.</p>
-  {% endif %}
+    <h2>Strongest Matching Experience</h2>
+    <p class="hint">Domain/skill tags from the Career Brain documents used below — written by you for those stories, not generated here.</p>
+    {% if rec.strongest_matching_experience %}
+    <p>{% for tag in rec.strongest_matching_experience %}<span class="tag">{{ tag }}</span>{% endfor %}</p>
+    {% else %}
+    <p class="hint">No Career Brain documents were used for this evaluation, so no tags to show.</p>
+    {% endif %}
 
-  <h2>Biggest gaps</h2>
-  {% if rec.top_gaps %}
-  <ul>{% for g in rec.top_gaps %}<li>{{ g }}</li>{% endfor %}</ul>
-  {% else %}
-  <p class="hint">None recorded for this evaluation.</p>
-  {% endif %}
+    <h2>Transferable Experience</h2>
+    <p class="hint">Compensates for the gaps below — pulled from the positioning strategy and strengths text, not a separate model output.</p>
+    {% if rec.transferable_experience %}
+    <ul>{% for t in rec.transferable_experience %}<li>{{ t }}</li>{% endfor %}</ul>
+    {% else %}
+    <p class="hint">Nothing distinct extracted from the text above.</p>
+    {% endif %}
 
-  <h2>Transferable experience</h2>
-  <p class="hint">Compensates for the gaps above — pulled from the positioning strategy and strengths, not a separate model output.</p>
-  {% if rec.transferable_experience %}
-  <ul>{% for t in rec.transferable_experience %}<li>{{ t }}</li>{% endfor %}</ul>
-  {% else %}
-  <p class="hint">Nothing distinct extracted — see positioning strategy below.</p>
-  {% endif %}
+    <h2>Biggest Gaps</h2>
+    {% if rec.top_gaps %}
+    <ul>{% for g in rec.top_gaps %}<li>{{ g }}</li>{% endfor %}</ul>
+    {% else %}
+    <p class="hint">None recorded for this evaluation.</p>
+    {% endif %}
+    {% if rec.disqualifiers %}
+    <p><strong>Disqualifiers:</strong></p>
+    <ul>{% for d in rec.disqualifiers %}<li>{{ d }}</li>{% endfor %}</ul>
+    {% endif %}
 
-  <h2>Positioning strategy</h2>
-  <p>{{ rec.positioning_strategy }}</p>
+    <h2>Career Brain Evidence Used</h2>
+    {% if rec.career_brain_evidence %}
+    <ul>{% for doc in rec.career_brain_evidence %}<li>✓ {{ doc.title }}</li>{% endfor %}</ul>
+    {% else %}
+    <p class="hint">None — career_brain/ was empty (or this evaluation predates Career Brain) at the time this was scored.</p>
+    {% endif %}
 
-  {% if rec.disqualifiers %}
-  <h2>Disqualifiers</h2>
-  <ul>{% for d in rec.disqualifiers %}<li>{{ d }}</li>{% endfor %}</ul>
-  {% endif %}
+    <h2>Candidate Profile Signals Used</h2>
+    <p class="hint">Structured profile fields whose content shows up in this evaluation's own text — a proxy based on your current profile, since historical profile snapshots aren't stored per evaluation.</p>
+    {% if rec.profile_signals %}
+    <p>{% for s in rec.profile_signals %}<span class="tag">{{ s }}</span>{% endfor %}</p>
+    {% else %}
+    <p class="hint">No clear echo of specific profile fields in this evaluation's text.</p>
+    {% endif %}
+
+    <h2>Deterministic Filters</h2>
+    <table class="filter-table">
+      {% for name, status in rec.deterministic_filters.results.items() %}
+      <tr>
+        <td>{{ name }}</td>
+        <td class="filter-status-{{ 'passed' if status == 'passed' else 'not' if status == 'not configured' else 'flagged' if 'flagged' in status else 'failed' }}">{{ status }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% if not rec.deterministic_filters.any_triggered %}
+    <p class="hint">No deterministic filter blocked or flagged this job — it reached AI review on its merits.</p>
+    {% endif %}
+  </div>
   {% else %}
   <p class="meta">Not yet scored. Run <code>python app.py score</code> (after <code>python app.py filter</code>).</p>
   {% endif %}

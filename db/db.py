@@ -151,7 +151,7 @@ def fetch_job_with_latest_evaluation(db_path: str, job_id: int) -> dict | None:
             """
             SELECT jobs.*, je.score, je.decision, je.positioning_strategy,
                    je.reasons_to_apply, je.gaps, je.disqualifiers, je.evidence_story_ids,
-                   je.created_at AS evaluated_at
+                   je.model_run_id, je.created_at AS evaluated_at
             FROM jobs
             LEFT JOIN (
                 SELECT je1.*
@@ -170,6 +170,19 @@ def fetch_job_with_latest_evaluation(db_path: str, job_id: int) -> dict | None:
         for field in ("reasons_to_apply", "gaps", "disqualifiers", "evidence_story_ids"):
             job[field] = json.loads(job[field]) if job[field] else []
         return job
+    finally:
+        conn.close()
+
+
+def fetch_model_run(db_path: str, model_run_id: int | None) -> dict | None:
+    if model_run_id is None:
+        return None
+    conn = get_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT * FROM model_runs WHERE id = ?", (model_run_id,)
+        ).fetchone()
+        return dict(row) if row else None
     finally:
         conn.close()
 

@@ -8,6 +8,7 @@ from db.db import (
     fetch_approved_candidate_stories,
     fetch_job_with_latest_evaluation,
     fetch_jobs_with_latest_evaluation,
+    fetch_model_run,
     get_application,
     get_candidate_profile,
     get_connection,
@@ -90,7 +91,9 @@ def create_app() -> Flask:
         application = get_application(settings.DATABASE_PATH, job_id)
         if application and application.get("career_brain_docs"):
             application["career_brain_docs"] = json.loads(application["career_brain_docs"])
-        rec = build_recommendation_view(job)
+        profile = get_candidate_profile(settings.DATABASE_PATH)
+        model_run = fetch_model_run(settings.DATABASE_PATH, job.get("model_run_id"))
+        rec = build_recommendation_view(job, profile, model_run)
         return render_template("job_detail.html", job=job, application=application, rec=rec)
 
     @app.post("/jobs/<int:job_id>/materials")
