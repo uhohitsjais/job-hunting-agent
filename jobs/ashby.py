@@ -1,6 +1,6 @@
 import requests
 
-from .normalize import NormalizedJob, guess_remote_type
+from .normalize import NormalizedJob, guess_remote_type, parse_posted_at_iso
 
 BASE_URL = "https://api.ashbyhq.com/posting-api/job-board/{slug}"
 
@@ -23,6 +23,7 @@ def fetch_jobs(slug: str) -> list[NormalizedJob]:
                 salary_min=None,
                 salary_max=None,
                 url=item.get("jobUrl", ""),
+                posted_at=parse_posted_at_iso(item.get("publishedAt")),
             )
         )
     return jobs

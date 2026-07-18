@@ -28,8 +28,10 @@ def cmd_status(_args):
 def cmd_fetch(_args):
     from jobs.fetch import fetch_all
 
-    total = fetch_all()
-    print(f"Fetched/updated {total} job postings")
+    result = fetch_all()
+    print(f"Fetched/updated {result['fetched']} job postings")
+    if result["delisted"]:
+        print(f"Delisted {result['delisted']} job(s) no longer in their source's live feed")
 
 
 def cmd_score(args):

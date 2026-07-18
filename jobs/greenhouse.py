@@ -1,6 +1,6 @@
 import requests
 
-from .normalize import NormalizedJob, guess_remote_type, strip_html
+from .normalize import NormalizedJob, guess_remote_type, parse_posted_at_iso, strip_html
 
 BASE_URL = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
 
@@ -23,6 +23,7 @@ def fetch_jobs(slug: str) -> list[NormalizedJob]:
                 salary_min=None,
                 salary_max=None,
                 url=item.get("absolute_url", ""),
+                posted_at=parse_posted_at_iso(item.get("first_published")),
             )
         )
     return jobs

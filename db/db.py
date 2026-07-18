@@ -18,7 +18,7 @@ PROFILE_ARRAY_FIELDS = [
     "preferred_company_size",
 ]
 
-DECISION_GROUPS = ["priority", "apply", "stretch", "archive", "unscored", "filtered_title"]
+DECISION_GROUPS = ["priority", "apply", "stretch", "archive", "unscored", "filtered_title", "delisted"]
 
 # Lightweight ALTER TABLE migrations for columns added after a table's first
 # CREATE. `CREATE TABLE IF NOT EXISTS` won't add new columns to an existing
@@ -27,6 +27,7 @@ DECISION_GROUPS = ["priority", "apply", "stretch", "archive", "unscored", "filte
 MIGRATIONS = [
     "ALTER TABLE candidate_profile ADD COLUMN excluded_titles TEXT NOT NULL DEFAULT '[]'",
     "ALTER TABLE applications ADD COLUMN career_brain_docs TEXT",
+    "ALTER TABLE jobs ADD COLUMN posted_at TEXT",
 ]
 
 
@@ -117,10 +118,14 @@ def group_jobs_by_decision(jobs: list[dict]) -> dict:
     dropped: jobs filtered out by the deterministic title pre-filter get
     their own 'filtered_title' group (they were never sent to the LLM, so
     they have no `decision`), separate from 'unscored' (eligible, just
-    hasn't been scored yet)."""
+    hasn't been scored yet). 'delisted' (no longer in the source ATS's live
+    feed) takes priority over everything else, including a prior score —
+    no point surfacing a strong match for a job that's gone."""
     groups: dict[str, list[dict]] = {key: [] for key in DECISION_GROUPS}
     for job in jobs:
-        if job.get("status") == "filtered_title":
+        if job.get("status") == "delisted":
+            key = "delisted"
+        elif job.get("status") == "filtered_title":
             key = "filtered_title"
         else:
             key = job.get("decision") or "unscored"
@@ -134,11 +139,15 @@ def get_pipeline_stats(db_path: str) -> dict:
         def count(where: str = "") -> int:
             return conn.execute(f"SELECT COUNT(*) AS n FROM jobs {where}").fetchone()["n"]
 
+        last_fetched = conn.execute("SELECT MAX(updated_at) AS t FROM jobs").fetchone()["t"]
+
         return {
             "total": count(),
             "filtered": count("WHERE status = 'filtered_title'"),
             "eligible": count("WHERE status = 'sourced'"),
             "scored": count("WHERE status = 'scored'"),
+            "delisted": count("WHERE status = 'delisted'"),
+            "last_fetched_at": last_fetched,
         }
     finally:
         conn.close()

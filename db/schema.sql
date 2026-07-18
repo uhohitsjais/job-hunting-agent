@@ -15,10 +15,14 @@ CREATE TABLE IF NOT EXISTS jobs (
     industry TEXT,                     -- from config/companies.yaml, for excluded_industries rule
     description TEXT,                  -- raw JD text
     jd_hash TEXT,                      -- hash of description, for change detection
+    posted_at TEXT,                    -- ISO8601 UTC, when the ATS says the job was posted
     status TEXT NOT NULL DEFAULT 'sourced',
-        -- sourced | filtered_title | scored | drafted | reviewed | approved | applied | skipped
+        -- sourced | filtered_title | scored | drafted | reviewed | approved | applied | skipped | delisted
         -- filtered_title = failed the deterministic title pre-filter (scoring/title_filter.py)
         -- before ever reaching the LLM; still browsable, never deleted.
+        -- delisted = no longer present in the source ATS's live feed as of the
+        -- last fetch; still browsable, never deleted, takes priority over
+        -- whatever status/decision the job had before disappearing.
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (source, external_id)

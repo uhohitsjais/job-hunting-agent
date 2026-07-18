@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, redirect, render_template, request, url_for
 
@@ -49,7 +50,10 @@ GROUP_LABELS = {
     "archive": "Archive",
     "unscored": "Not yet scored",
     "filtered_title": "Filtered (Title)",
+    "delisted": "Delisted",
 }
+
+POSTED_WITHIN_CUTOFFS = {"24h": timedelta(hours=24), "7d": timedelta(days=7)}
 
 
 def create_app() -> Flask:
@@ -58,6 +62,22 @@ def create_app() -> Flask:
     @app.get("/")
     def dashboard():
         jobs = fetch_jobs_with_latest_evaluation(settings.DATABASE_PATH)
+        has_jobs = bool(jobs)
+
+        posted_within = request.args.get("posted_within", "all")
+        if posted_within in POSTED_WITHIN_CUTOFFS:
+            cutoff = datetime.now(timezone.utc) - POSTED_WITHIN_CUTOFFS[posted_within]
+
+            def is_recent(job):
+                if not job.get("posted_at"):
+                    return False
+                try:
+                    return datetime.fromisoformat(job["posted_at"]) >= cutoff
+                except ValueError:
+                    return False
+
+            jobs = [job for job in jobs if is_recent(job)]
+
         grouped = group_jobs_by_decision(jobs)
         sections = [
             (GROUP_LABELS[key], grouped[key]) for key in DECISION_GROUPS if grouped[key]
@@ -67,9 +87,10 @@ def create_app() -> Flask:
         return render_template(
             "dashboard.html",
             sections=sections,
-            has_jobs=bool(jobs),
+            has_jobs=has_jobs,
             stats=stats,
             just_ran_filter=just_ran,
+            posted_within=posted_within,
         )
 
     @app.post("/filter")

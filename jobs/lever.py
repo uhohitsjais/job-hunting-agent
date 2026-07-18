@@ -1,6 +1,6 @@
 import requests
 
-from .normalize import NormalizedJob, guess_remote_type
+from .normalize import NormalizedJob, guess_remote_type, parse_posted_at_epoch_ms
 
 BASE_URL = "https://api.lever.co/v0/postings/{slug}"
 
@@ -24,6 +24,7 @@ def fetch_jobs(slug: str) -> list[NormalizedJob]:
                 salary_min=None,
                 salary_max=None,
                 url=item.get("hostedUrl", ""),
+                posted_at=parse_posted_at_epoch_ms(item.get("createdAt")),
             )
         )
     return jobs

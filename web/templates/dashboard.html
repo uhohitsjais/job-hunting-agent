@@ -17,6 +17,7 @@
     .section-stretch h2 { color: #a15c00; }
     .section-archive h2 { color: #666; }
     .section-filtered-\(title\) h2 { color: #999; }
+    .section-delisted h2 { color: #a1260d; }
     .stats { display: flex; align-items: center; gap: 1.5rem; margin: 1rem 0 1.5rem; padding: 1rem; background: #f4f4f4; border-radius: 6px; }
     .stat { text-align: center; }
     .stat .n { font-size: 1.5rem; font-weight: 700; display: block; }
@@ -25,6 +26,10 @@
     .stats button { padding: 0.5rem 1rem; font-size: 0.95rem; cursor: pointer; }
     .banner { background: #e6f4ea; color: #1e7e34; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: 4px; }
     .score { font-weight: 700; }
+    .freshness { color: #555; font-size: 0.85rem; margin-bottom: 1rem; }
+    .date-filter { margin-bottom: 1rem; }
+    .date-filter a { margin-right: 0.75rem; padding: 0.3rem 0.7rem; border-radius: 4px; text-decoration: none; color: #333; background: #f0f0f0; }
+    .date-filter a.active { background: #33449e; color: white; }
   </style>
 </head>
 <body>
@@ -33,6 +38,10 @@
   {% if not has_jobs %}
   <p class="empty">No jobs sourced yet. Run <code>python app.py fetch</code>.</p>
   {% else %}
+    <p class="freshness">
+      Last fetched: {{ stats.last_fetched_at or 'unknown' }}
+      — run <code>python app.py fetch</code> for the latest listings before relying on this.
+    </p>
     {% if just_ran_filter %}
     <p class="banner">Title filter ran — Total sourced: {{ stats.total }}, Filtered: {{ stats.filtered }}, Eligible: {{ stats.eligible }}</p>
     {% endif %}
@@ -41,16 +50,24 @@
       <div class="stat"><span class="n">{{ stats.filtered }}</span><span class="label">Filtered</span></div>
       <div class="stat"><span class="n">{{ stats.eligible }}</span><span class="label">Eligible for scoring</span></div>
       <div class="stat"><span class="n">{{ stats.scored }}</span><span class="label">Scored</span></div>
+      <div class="stat"><span class="n">{{ stats.delisted }}</span><span class="label">Delisted</span></div>
       <form method="post" action="/filter">
         <button type="submit">Run Title Filter</button>
       </form>
     </div>
+    <div class="date-filter">
+      Posted:
+      <a href="/?posted_within=all" class="{{ 'active' if posted_within == 'all' }}">All time</a>
+      <a href="/?posted_within=24h" class="{{ 'active' if posted_within == '24h' }}">Last 24 hours</a>
+      <a href="/?posted_within=7d" class="{{ 'active' if posted_within == '7d' }}">Last 7 days</a>
+    </div>
+    {% if sections %}
     {% for label, jobs in sections %}
     <section class="section-{{ label | lower | replace(' ', '-') }}">
       <h2>{{ label }} ({{ jobs | length }})</h2>
       <table>
         <thead>
-          <tr><th>Score</th><th>Company</th><th>Title</th><th>Source</th><th>Status</th></tr>
+          <tr><th>Score</th><th>Company</th><th>Title</th><th>Posted</th><th>Source</th><th>Status</th></tr>
         </thead>
         <tbody>
           {% for job in jobs %}
@@ -58,6 +75,7 @@
             <td class="score">{{ job.score if job.score is not none else '—' }}</td>
             <td>{{ job.company }}</td>
             <td><a href="/jobs/{{ job.id }}">{{ job.title }}</a></td>
+            <td>{{ job.posted_at[:10] if job.posted_at else '—' }}</td>
             <td>{{ job.source }}</td>
             <td>{{ job.status }}</td>
           </tr>
@@ -66,6 +84,9 @@
       </table>
     </section>
     {% endfor %}
+    {% else %}
+    <p class="empty">No jobs posted in this time window. Try "All time" or run <code>python app.py fetch</code> for fresh listings.</p>
+    {% endif %}
   {% endif %}
 </body>
 </html>
