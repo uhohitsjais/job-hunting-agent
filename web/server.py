@@ -17,8 +17,7 @@ from db.db import (
     update_candidate_profile,
     upsert_application,
 )
-from materials.career_brain import load_career_brain_context
-from scoring.context import build_candidate_context
+from scoring.context import build_full_candidate_context
 from web.presentation import build_recommendation_view
 
 ARRAY_FIELDS = [
@@ -105,15 +104,7 @@ def create_app() -> Flask:
         provider = OpenAIProvider()
         profile = get_candidate_profile(settings.DATABASE_PATH)
         stories = fetch_approved_candidate_stories(settings.DATABASE_PATH)
-        base_context = build_candidate_context(profile)
-        career_brain_text, career_brain_docs = load_career_brain_context()
-        candidate_context = base_context
-        if career_brain_text:
-            candidate_context = (
-                base_context
-                + "\n\n---\n\nCareer Brain (long-term source of truth):\n\n"
-                + career_brain_text
-            )
+        candidate_context, career_brain_docs, career_brain_hash = build_full_candidate_context(profile)
 
         conn = get_connection(settings.DATABASE_PATH)
         try:
@@ -127,7 +118,7 @@ def create_app() -> Flask:
                 prompt_file=summary_meta.prompt_file,
                 prompt_version=summary_meta.prompt_version,
                 model_name=summary_meta.model_name,
-                input_context=json.dumps({**summary_meta.input_context, "career_brain_docs": career_brain_docs}),
+                input_context=json.dumps({**summary_meta.input_context, "career_brain_docs": career_brain_docs, "career_brain_hash": career_brain_hash}),
                 raw_output=summary_meta.raw_output,
                 parsed_output=json.dumps({"summary": summary_result.summary}),
                 success=1,
@@ -144,7 +135,7 @@ def create_app() -> Flask:
                 prompt_file=letter_meta.prompt_file,
                 prompt_version=letter_meta.prompt_version,
                 model_name=letter_meta.model_name,
-                input_context=json.dumps({**letter_meta.input_context, "career_brain_docs": career_brain_docs}),
+                input_context=json.dumps({**letter_meta.input_context, "career_brain_docs": career_brain_docs, "career_brain_hash": career_brain_hash}),
                 raw_output=letter_meta.raw_output,
                 parsed_output=json.dumps({"body": letter_result.body}),
                 success=1,

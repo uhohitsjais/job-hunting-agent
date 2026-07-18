@@ -13,7 +13,7 @@ from db.db import (
     mark_job_status,
 )
 
-from .context import build_candidate_context
+from .context import build_full_candidate_context
 from .rules import apply_deterministic_rules
 from .title_filter import passes_title_filter
 
@@ -72,7 +72,7 @@ def evaluate_job(conn, job: dict, profile: dict, stories: list[dict], provider) 
         mark_job_status(conn, job["id"], "scored")
         return "archive"
 
-    candidate_context = build_candidate_context(profile)
+    candidate_context, career_brain_docs, career_brain_hash = build_full_candidate_context(profile)
 
     try:
         result, metadata = provider.recommend_job(
@@ -104,7 +104,13 @@ def evaluate_job(conn, job: dict, profile: dict, stories: list[dict], provider) 
         prompt_file=metadata.prompt_file,
         prompt_version=metadata.prompt_version,
         model_name=metadata.model_name,
-        input_context=json.dumps(metadata.input_context),
+        input_context=json.dumps(
+            {
+                **metadata.input_context,
+                "career_brain_docs": career_brain_docs,
+                "career_brain_hash": career_brain_hash,
+            }
+        ),
         raw_output=metadata.raw_output,
         parsed_output=json.dumps(
             {
@@ -138,8 +144,8 @@ def evaluate_job(conn, job: dict, profile: dict, stories: list[dict], provider) 
     return result.decision
 
 
-def evaluate_all(rescore: bool = False) -> dict:
-    from db.db import fetch_all_jobs
+def evaluate_all(rescore: bool = False, job_id: int | None = None) -> dict:
+    from db.db import fetch_all_jobs, fetch_job_by_id
 
     from providers.openai_provider import OpenAIProvider
 
@@ -147,7 +153,13 @@ def evaluate_all(rescore: bool = False) -> dict:
     profile = get_candidate_profile(settings.DATABASE_PATH)
     stories = fetch_approved_candidate_stories(settings.DATABASE_PATH)
 
-    if rescore:
+    if job_id is not None:
+        # Targeted single-job (re)score — bypasses the status filter
+        # entirely, for verifying a specific change (e.g. new Career Brain
+        # content) without touching the rest of the database.
+        job = fetch_job_by_id(settings.DATABASE_PATH, job_id)
+        jobs = [job] if job else []
+    elif rescore:
         # --rescore redoes LLM judgment, not the deterministic title gate —
         # jobs already filtered_title stay excluded. Run `python app.py
         # filter` separately first if you want the gate reconsidered too.

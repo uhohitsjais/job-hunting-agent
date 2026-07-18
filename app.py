@@ -35,7 +35,7 @@ def cmd_fetch(_args):
 def cmd_score(args):
     from scoring.evaluate import evaluate_all
 
-    counts = evaluate_all(rescore=args.rescore)
+    counts = evaluate_all(rescore=args.rescore, job_id=args.job_id)
     if not counts:
         print("No jobs to score (nothing with status='sourced' — try --rescore).")
         return
@@ -127,6 +127,9 @@ def main():
     )
     score_parser.add_argument(
         "--rescore", action="store_true", help="Re-evaluate all jobs, not just unscored ones"
+    )
+    score_parser.add_argument(
+        "--job-id", type=int, default=None, help="Re-evaluate exactly one job by id, ignoring status"
     )
     score_parser.set_defaults(func=cmd_score)
     subparsers.add_parser(

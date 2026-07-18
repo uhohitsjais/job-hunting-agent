@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 # Repo-root career_brain/ — sibling of this materials/ package, not inside it.
@@ -49,3 +50,13 @@ def load_career_brain_context(base_dir: Path | None = None) -> tuple[str, list[s
     combined = "\n\n---\n\n".join(parts)
     loaded_paths = [doc["path"] for doc in all_docs]
     return combined, loaded_paths
+
+
+def hash_career_brain_context(career_brain_text: str) -> str:
+    """Short content hash of the Career Brain text actually used in one
+    generation/evaluation — logged alongside the file list so a later,
+    edited version of the same files is distinguishable from what was
+    actually used at the time (reproducibility, not just a file listing)."""
+    if not career_brain_text:
+        return ""
+    return hashlib.sha256(career_brain_text.encode()).hexdigest()[:12]

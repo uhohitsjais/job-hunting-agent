@@ -5,3 +5,9 @@ __pycache__/
 data/
 .DS_Store
 .claude/
+
+# Career Brain content is personal (real names, recommendation quotes,
+# internal business detail) and stays local-only, never pushed to the
+# public repo. Only the structural README (no personal content) is tracked.
+career_brain/*
+!career_brain/README.md

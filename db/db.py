@@ -70,6 +70,15 @@ def fetch_all_jobs(db_path: str) -> list[sqlite3.Row]:
         conn.close()
 
 
+def fetch_job_by_id(db_path: str, job_id: int) -> dict | None:
+    conn = get_connection(db_path)
+    try:
+        row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 def fetch_jobs_with_latest_evaluation(db_path: str) -> list[dict]:
     """One row per job, joined to its most recent job_evaluations row (if
     any). Scored jobs sort best-first; unscored jobs sort newest-first at
