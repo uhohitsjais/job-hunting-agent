@@ -76,21 +76,30 @@ def cmd_career_brain(_args):
 
 def cmd_fill(args):
     from db.db import fetch_job_with_latest_evaluation, get_application, get_candidate_profile
+    from fill.ashby_fill import fill_ashby_application
     from fill.greenhouse_fill import fill_greenhouse_application
+    from fill.lever_fill import fill_lever_application
+
+    FILLERS = {
+        "greenhouse": fill_greenhouse_application,
+        "lever": fill_lever_application,
+        "ashby": fill_ashby_application,
+    }
 
     job = fetch_job_with_latest_evaluation(settings.DATABASE_PATH, args.job_id)
     if job is None:
         print(f"No job with id {args.job_id}")
         return
-    if job["source"] != "greenhouse":
-        print(f"Only Greenhouse fill is supported right now (this job is on {job['source']}).")
+    filler = FILLERS.get(job["source"])
+    if filler is None:
+        print(f"No fill support for '{job['source']}' yet (supported: {', '.join(FILLERS)}).")
         return
 
     profile = get_candidate_profile(settings.DATABASE_PATH)
     application = get_application(settings.DATABASE_PATH, args.job_id)
 
     print(f"Opening {job['url']} ...")
-    result = fill_greenhouse_application(job["url"], profile, application, headless=False)
+    result = filler(job["url"], profile, application, headless=False)
 
     print("\nFilled:")
     for item in result["filled"] or ["(nothing — check your candidate profile has contact info)"]:
