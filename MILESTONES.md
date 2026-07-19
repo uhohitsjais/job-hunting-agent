@@ -18,7 +18,7 @@ One thing still needed from you: your branded DOCX resume/cover-letter templates
 | M8 | Inject into branded DOCX templates | ⏸️ Not started. **Blocked on:** your branded DOCX templates. Materials generation (M7) currently outputs plain text, no branded formatting yet |
 | M9 | Review queue | ⏸️ Not built as a dedicated dashboard view. In practice, review happens directly on the job detail page (edit resume summary/cover letter inline, regenerate) — revisit only if that stops being enough |
 | M10 | Playwright fill — Greenhouse | ✅ Done — `python app.py fill <job_id>` opens a real browser, fills contact info + LinkedIn + cover letter, always leaves résumé upload and work-authorization/demographic questions for manual completion, never submits |
-| M11 | Lever/Ashby fill | ⏸️ Deferred — Greenhouse fill works, but Lever/Ashby extensions not yet built |
+| M11 | Lever/Ashby fill | ✅ Done — `python app.py fill <job_id>` now dispatches by ATS automatically. Same rules as Greenhouse (never touches résumé/work-auth/demographic questions, never submits). Ashby has no cover-letter text option (file upload only); Lever's standard form has no cover-letter field at all |
 | M12 | Hardening + operating guide | ⏸️ Not started |
 
 ## Milestones added beyond the original plan
