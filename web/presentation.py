@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from scoring.title_filter import passes_title_filter
@@ -40,6 +41,34 @@ FILTER_KEYWORDS = {
     "Location": ["remote", "onsite", "hybrid", "location"],
     "Industry": ["industry"],
 }
+
+
+def humanize_posted_at(posted_at: str | None) -> str:
+    """'Today' / '1 day ago' / '3 days ago' / '2 weeks ago' etc, instead of
+    a raw date — same underlying posted_at value, just friendlier."""
+    if not posted_at:
+        return "—"
+    try:
+        posted = datetime.fromisoformat(posted_at)
+    except ValueError:
+        return "—"
+
+    days = (datetime.now(timezone.utc) - posted).days
+    if days <= 0:
+        return "Today"
+    if days == 1:
+        return "1 day ago"
+    if days < 7:
+        return f"{days} days ago"
+    weeks = days // 7
+    if weeks == 1:
+        return "1 week ago"
+    if days < 30:
+        return f"{weeks} weeks ago"
+    months = days // 30
+    if months == 1:
+        return "1 month ago"
+    return f"{months} months ago"
 
 
 def _split_sentences(text: str | None) -> list[str]:

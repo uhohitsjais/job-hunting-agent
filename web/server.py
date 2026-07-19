@@ -20,7 +20,7 @@ from db.db import (
     upsert_application,
 )
 from scoring.context import build_full_candidate_context
-from web.presentation import build_recommendation_view
+from web.presentation import build_recommendation_view, humanize_posted_at
 
 ARRAY_FIELDS = [
     "target_titles",
@@ -77,6 +77,9 @@ def create_app() -> Flask:
                     return False
 
             jobs = [job for job in jobs if is_recent(job)]
+
+        for job in jobs:
+            job["posted_display"] = humanize_posted_at(job.get("posted_at"))
 
         grouped = group_jobs_by_decision(jobs)
         sections = [
